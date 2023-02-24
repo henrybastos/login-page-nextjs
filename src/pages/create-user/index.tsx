@@ -1,57 +1,166 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import Head from 'next/head'
-import { ChakraProvider, Heading, Card, Input, Flex, Box, Button, IconButton, Skeleton, Tooltip } from "@chakra-ui/react";
+import { ChakraProvider, Heading, Card, Input, Flex, Box, Button, IconButton, Skeleton, Tooltip, Text, useToast } from "@chakra-ui/react";
 import { FiChevronLeft } from "react-icons/fi";
-import _InputPassword from "./_InputPassword";
-import _InputText from "./_InputText";
+import _InputPassword from "../../app/components/_InputPassword";
+import _InputText from "../../app/components/_InputText";
 import CreateUserController from "../../app/CreateUserController";
-import { EventEmitter } from "events";
+import { CreateUserModel, ERROR_MESSAGES } from '../../app/CreateUserModel';
 
-type Timeout = ReturnType<typeof setTimeout >;
+type Timeout = ReturnType<typeof setTimeout>;
 
-export default function HomePage() {
-  let [loaded, setLoaded] = useState(false);
-  let [validations, setValidations] = useState({});
+export default function CreateUserPage() {
+  const router = useRouter();
+  let [loaded, setLoaded] = useState(true); // Skeleton loading test
 
-  let [name, setName] = useState();
-  let [username, setUsername] = useState();
-  let [email, setEmail] = useState();
-  let [password, setPassword] = useState();
+  let [name, setName] = useState('');
+  let [username, setUsername] = useState('');
+  let [email, setEmail] = useState('');
+  let [password, setPassword] = useState('');
+  let [confirmPassword, setConfirmPassword] = useState('');
 
-  let [subscribers, setSubscribers] = useState([]);
+  let [passwordsMatch, setPasswordsMatch] = useState(true);
+  let [allPasswordsCheck, setAllPasswordsCheck] = useState(true);
+
+  let [nameCheck, setNameCheck] = useState(true);
+  let [usernameCheck, setUsernameCheck] = useState(true);
+  let [emailCheck, setEmailCheck] = useState(true);
+  let [passwordCheck, setPasswordCheck] = useState(true);
+  let [confirmPasswordCheck, setConfirmPasswordCheck] = useState(true);
+
   
-  setTimeout(() => { // Skeleton loading test
-    setLoaded(true);
-  }, 2000);
+  // setTimeout(() => { // Skeleton loading test
+  //   setLoaded(true);
+  // }, 2000);
+    
+  const ConfigProps = {
+    name: {
+      setState: setName, 
+      state: name,
+    },
+    username: {
+      setState: setUsername, 
+      state: username,
+    },
+    email: {
+      setState: setEmail, 
+      state: email,
+    },
+    password: {
+      setState: setPassword, 
+      state: password,
+    },
+    confirmPassword: {
+      setState: setConfirmPassword, 
+      state: confirmPassword,
+    },
+  };
+
+  const Model = new CreateUserModel(ConfigProps);
+  const Controller = new CreateUserController(ConfigProps);
+  const errorToast = useToast();
+  const successToast = useToast();
   
-  // useEffect(() => {
-    //   console.log(validations);
-    // }, [validations])
-
-  let Controller = new CreateUserController();
-  const Emmiter = new EventEmitter();
-
   const debounce = (callback: Function, delay: number) => {
     let timeout: Timeout;
 
     return (...args: Array<unknown>) => {
       clearTimeout(timeout);
       console.log('Restart...');
-        timeout = setTimeout(() => { callback(...args) }, delay);
+      timeout = setTimeout(() => { callback(...args) }, delay);
+    }
+  }
+  
+  function addNewUserErrorHandler (_error: { message: string, targets?: Array<string>}, _id: string) {
+    // console.error(_error.message);
+
+    _error?.targets?.forEach(target => {
+      switch (target) {
+        case "name":
+          setNameCheck(false);
+          break;
+        case "username":
+          setUsernameCheck(false);
+          break;
+        case "email":
+          setEmailCheck(false);
+          break;
+        case "password":
+          setPasswordCheck(false);
+          break;
+        case "confirmPassword":
+          setConfirmPasswordCheck(false);
+          break;
+      }
+    });
+    
+    if (!errorToast.isActive("blank-input") && !errorToast.isActive("existing-user")) {
+      showErrorToast(_error.message, _id);
+    }
+  }
+  
+  function showErrorToast (_title: string, _id: string) {
+    errorToast({
+      title: _title,
+      id: _id,
+      status: "error",
+      duration: 10000,
+    });
+  }
+
+  function closeErrorToast ( _id: string) {
+    errorToast.close(_id);
+  }
+
+  function showSuccessToast (_title: string, _id: string) {
+    successToast({
+      title: _title,
+      id: _id,
+      status: "success",
+      duration: 10000,
+    });
+  }
+
+  function closeSuccessToast ( _id: string) {
+    successToast.close(_id);
+  }
+
+  useEffect(() => {
+    if (password === confirmPassword) {
+      setPasswordsMatch(true);
+      closeErrorToast("password-mismatch");
+    } else {
+      setPasswordsMatch(false);
+      if (!errorToast.isActive("password-mismatch") && allPasswordsCheck) {
+        showErrorToast("As senhas não podem ser diferentes.", "password-mismatch");
       }
     }
+
+  }, [password, confirmPassword]);
+  
+  useEffect(() => {
+    try {
+      Model.checkEmail();
+      setEmailCheck(true);
+    } catch (err) {
+      setEmailCheck(false);
+    }
+  },[email]);
+  
+  useEffect(() => {
     
-  const callCheckEmail = debounce(() => {
-    console.log('Email');
-  },2000);
+    closeErrorToast("blank-input");
+    closeErrorToast("existing-user");
+    if(name !== '' || username !== '' || email !== '' || password !== '' || confirmPassword !== '') {
+    }
 
-  // function callSubscribers () {
-  //   subscribers.forEach(sub => sub());
-  // }
-
-  // function subscribeFunc (funcToSubscribe: Function) {
-  //   setSubscribers([...subscribers: Array<function>, funcToSubscribe]);
-  // }
+    if (name !== '') { setNameCheck(true); };
+    if (username !== '') { setUsernameCheck(true); };
+    if (email !== '') { setEmailCheck(true); };
+    if (password !== '') { setPasswordCheck(true); };
+    if (confirmPassword !== '') { setConfirmPasswordCheck(true); };
+  },[name, username, email, password, confirmPassword]);
 
   return (
     <ChakraProvider>
@@ -64,7 +173,18 @@ export default function HomePage() {
           <Box pt="56px" mb="24px" w="100%">
             <Skeleton isLoaded={loaded}>
               <Flex flexDirection="row">
-                <IconButton onClick={() => alert('Cu!')} mx="16px" variant="ghost" fontSize='24px' aria-label="Return page" icon={<FiChevronLeft />}/>
+                <IconButton 
+                  mx="16px" 
+                  aria-label="Go to login page" 
+                  onClick={() => router.push("/login")} 
+                  icon={<FiChevronLeft />} 
+                  _hover={{
+                    bg: "gray.300"
+                  }}
+                  _active={{
+                    bg: "gray.400"
+                  }}
+                  />
                 <Heading size="lg">Novo usuário</Heading>
               </Flex>
             </Skeleton> 
@@ -77,48 +197,67 @@ export default function HomePage() {
 
               <_InputText 
                 title="Nome completo" 
-                setValidations={setName} 
-                validations={name}
-                emmiter={Emmiter} 
-                validationType="Name"
-              />
+                textType="name"
+                placeholder="John Doe"
+                configProps={ConfigProps}
+                setTextCheck={setNameCheck}
+                textCheck={nameCheck}
+                />
 
               <_InputText 
                 title="Nome de usuário" 
-                validationType="Username" 
-                setValidations={setUsername} 
-                validations={username}
+                textType="username" 
+                placeholder="johndoe123"
+                configProps={ConfigProps}
+                setTextCheck={setUsernameCheck}
+                textCheck={usernameCheck}
               />
-              
-              {/* <Box w={{sm: "100%", md: "50%", lg: "50%"}} pr={{md: "16px", lg: "16px"}}>
-                <Input bg="white" onChange={(e) => console.log(e.target.value)} placeholder="John Doe"/>
-              </Box>
-
-              <Box w={{sm: "100%", md: "50%", lg: "50%"}} pt={{sm: "24px", md: 0, lg: 0}}>
-                <Tooltip 
-                  placement="bottom-start" 
-                  openDelay={750} 
-                  label="Seu nome de usuário será usado para login." 
-                  aria-label="Seu nome de usuário será usado para login."
-                >
-                  <Heading mb="4px" size="md">Nome de usuário</Heading>
-                </Tooltip>
-                <Input bg="white" placeholder="johndoe123"/>
-              </Box> */}
             </Flex>
 
             <Box w="100%" pt="24px">
               <Heading mb="4px" size="md">Email</Heading>
-              <Input onChange={() => callCheckEmail()} bg="white" type="email" placeholder="johndoe123@email.com"/>
+              <Input 
+                onChange={(event) => setEmail(event.currentTarget.value)} 
+                bg="white" 
+                type="email" 
+                placeholder="johndoe123@email.com"
+                isInvalid={!emailCheck}
+              />
+              { (!emailCheck && email !== '') && <Text m="8px" fontSize="md" color="red.500" fontWeight="700">{ERROR_MESSAGES.email.WhiteSpaces}</Text> }
             </Box>
 
             <Flex flexDirection={{sm: "column", md: "row", lg: "row"}} justifyContent="space-between" mt="24px">
-              <_InputPassword title="Senha" setValidations={setPassword} validations={password}/>
-              <_InputPassword title="Confirme sua senha" setValidations={setValidations} validations={validations}/>
+              <_InputPassword 
+                title="Senha" 
+                passwordType="password"
+                configProps={ConfigProps}
+                passwordsMatch={passwordsMatch}
+                setPasswordCheck={setPasswordCheck}
+                passwordCheck={passwordCheck}
+                />
+              
+              <_InputPassword 
+                title="Confirme sua senha" 
+                passwordType="confirmPassword"
+                configProps={ConfigProps}
+                passwordsMatch={passwordsMatch}
+                setPasswordCheck={setConfirmPasswordCheck}
+                passwordCheck={confirmPasswordCheck}
+              />
             </Flex>
 
-            <Button onClick={() => Emmiter.emit('shit')} mt="24px" bg="green.400" color="white" _hover={{ bg: "green.500" }} _active={{ bg: "green.600" }}>Continuar</Button>
-            {/* onClick={() => Controller.addToDatabase(name, username, email, password)} */}
+            <Button 
+              onClick={() => Controller.addNewUser(addNewUserErrorHandler, showSuccessToast)} 
+              mt="24px" 
+              bg="green.400" 
+              color="white" 
+              _hover={{ bg: "green.500" }} 
+              _active={{ bg: "green.600" }}
+            >
+              Continuar
+            </Button>
+
+            {/* <Button onClick={() => Controller.getFromDatabase("johndoe")} mt="24px" bg="green.400" color="white" _hover={{ bg: "green.500" }} _active={{ bg: "green.600" }}>Continuar</Button> */}
           </Card>
         </Box>
       </Flex>

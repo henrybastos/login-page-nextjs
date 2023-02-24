@@ -1,39 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heading, Input, InputGroup, InputRightElement, Flex, Box, IconButton, Skeleton, Tooltip, Spinner, Text, Progress, Button  } from "@chakra-ui/react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import CreateUserModel from '../../app/CreateUserModel';
+import { CreateUserModel, ConfigProps } from '../CreateUserModel';
 
 type Props = {
     title: string;
-    verificationType?: string;
-    setValidations?: Function;
-    validations?: object;
+    passwordType: "password" | "confirmPassword";
+    configProps: ConfigProps;
+    passwordsMatch: boolean;
+    setPasswordCheck: Function;
+    passwordCheck: boolean;
 }
 
+// type Timeout = ReturnType<typeof setTimeout> | undefined;
+
 export default function _PasswordField (props: Props) {
-    let [password, setPassword] = useState('');
+    let Model = new CreateUserModel(props.configProps);
+
     let [passwordVisible, setPasswordVisible] = useState(false);
-    let [isPasswordValid, setIsPasswordValid] = useState(true);
     let [errorMessage, setErrorMessage] = useState('');
     let [isVerifying, setIsVerifying] = useState(false);
 
-    let Model = new CreateUserModel();
+    const setPasswordState: Function = Model[props.passwordType].setState;
+    const passwordState: string = Model[props.passwordType].state;
 
-    function checkInput (event: string) {
-        setIsVerifying(true);
-        
-        setPassword(event?.trim());
-
+    useEffect(() => {
         Model.runChecks(
-            event?.trim(),
-            setIsPasswordValid, 
-            props?.setValidations, 
-            props?.validations, 
-            "Password",
+            props.setPasswordCheck, 
+            props.passwordType,
+            setErrorMessage,
             setIsVerifying, 
-            setErrorMessage
         );
-    }
+
+        props.setPasswordCheck(props.passwordCheck);
+    }, [passwordState, props.passwordsMatch]);
 
     return (
         <Box w={{sm: "100%", md: "calc(50% - 8px)", lg: "calc(50% - 8px)"}}>
@@ -42,10 +42,10 @@ export default function _PasswordField (props: Props) {
                 <Input 
                     bg="white" 
                     type={passwordVisible ? "text" : "password"} 
-                    onChange={(event) => checkInput(event?.currentTarget?.value)} 
+                    onChange={(event) => setPasswordState(event?.currentTarget?.value)}
                     placeholder="*****"
-                    isInvalid={!isPasswordValid && !isVerifying}
-                    value={password}
+                    isInvalid={!props.passwordCheck || !props.passwordsMatch}
+                    value={passwordState}
                 />
                 <InputRightElement>
                     <Tooltip hasArrow label={passwordVisible ? "Ocultar senha" : "Mostrar senha"} aria-label="Mudar visibilidade da senha.">
@@ -58,11 +58,7 @@ export default function _PasswordField (props: Props) {
                     </Tooltip>
                 </InputRightElement>
             </InputGroup>
-            {
-                isVerifying ? 
-                    <Progress mx="4px" my="8px" colorScheme="green" size="xs" isIndeterminate /> : 
-                    !isPasswordValid && <Text m="8px" fontSize="md" color="red.500" fontWeight="700">{errorMessage}</Text>
-            }
+            <Text m="8px" fontSize="md" color="red.500" fontWeight="700">{errorMessage}</Text>
         </Box>
     );
 }
