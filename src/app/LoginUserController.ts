@@ -25,7 +25,7 @@ export class LoginUserController {
 
     async loginUser () {
         let response: object = {};
-        await fetch("/api/get-user", {
+        await fetch(`${process.env.NODE_ENV === 'production' ? "http://login-page-nextjs-zeta.vercel.app" : "http://localhost:3000"}/api/get-user`, {
             method: "POST",
             body: JSON.stringify({
                 user: this.user.state,

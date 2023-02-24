@@ -180,7 +180,7 @@ export default function CreateUserPage() {
                   <IconButton 
                     mx="16px" 
                     aria-label="Go to login page" 
-                    onClick={() => router.push("/login")} 
+                    onClick={() => router.push("/")} 
                     icon={<FiChevronLeft />} 
                     _hover={{
                       bg: "gray.300"
