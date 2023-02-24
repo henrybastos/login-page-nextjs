@@ -25,7 +25,7 @@ export class LoginUserController {
 
     async loginUser () {
         let response: object = {};
-        await fetch("http://localhost:3000/api/get-user", {
+        await fetch("/api/get-user", {
             method: "POST",
             body: JSON.stringify({
                 user: this.user.state,
