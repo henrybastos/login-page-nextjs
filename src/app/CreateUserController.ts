@@ -1,4 +1,5 @@
 import { ConfigProps, User, ErrorMessagesInterface, ERROR_MESSAGES } from "./CreateUserModel";
+import { useRouter } from "next/router";
 
 export default class CreateUserController {
     name: {
@@ -80,7 +81,8 @@ export default class CreateUserController {
                 if (data.data) {
                     console.log(data.data);
                     console.log(`User ${this.name.state} (${this.username.state}) added!`);
-                    successHandler('Usuário cadastrado com sucesso!', "new-user");
+
+                    successHandler(data.data);
                 } else {
                     console.error(data.error);
                     errorHandler({ message: data.error }, "existing-user");

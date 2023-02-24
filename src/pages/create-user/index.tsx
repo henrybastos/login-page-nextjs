@@ -99,6 +99,22 @@ export default function CreateUserPage() {
       showErrorToast(_error.message, _id);
     }
   }
+
+  function addNewUserSuccessHandler () {
+    let newUser = {
+      name: name,
+      username: username,
+      email: email,
+    }
+
+    router.push({ 
+      pathname: '/user-dashboard', 
+      query: {
+        data: JSON.stringify(newUser),
+        status: 'new-user',
+      },
+    })
+  };
   
   function showErrorToast (_title: string, _id: string) {
     errorToast({
@@ -111,19 +127,6 @@ export default function CreateUserPage() {
 
   function closeErrorToast ( _id: string) {
     errorToast.close(_id);
-  }
-
-  function showSuccessToast (_title: string, _id: string) {
-    successToast({
-      title: _title,
-      id: _id,
-      status: "success",
-      duration: 10000,
-    });
-  }
-
-  function closeSuccessToast ( _id: string) {
-    successToast.close(_id);
   }
 
   useEffect(() => {
@@ -165,7 +168,7 @@ export default function CreateUserPage() {
   return (
     <ChakraProvider>
       <Head>
-        <title>Login page • Create user</title>
+        <title>Create User</title>
       </Head>
 
       <Flex bg="gray.100" w="100%" h="100vh" flexDirection="column" alignItems="center">
@@ -173,18 +176,20 @@ export default function CreateUserPage() {
           <Box pt="56px" mb="24px" w="100%">
             <Skeleton isLoaded={loaded}>
               <Flex flexDirection="row">
-                <IconButton 
-                  mx="16px" 
-                  aria-label="Go to login page" 
-                  onClick={() => router.push("/login")} 
-                  icon={<FiChevronLeft />} 
-                  _hover={{
-                    bg: "gray.300"
-                  }}
-                  _active={{
-                    bg: "gray.400"
-                  }}
+                <Tooltip hasArrow label='Login page' aria-label='Login page' openDelay={500}>
+                  <IconButton 
+                    mx="16px" 
+                    aria-label="Go to login page" 
+                    onClick={() => router.push("/login")} 
+                    icon={<FiChevronLeft />} 
+                    _hover={{
+                      bg: "gray.300"
+                    }}
+                    _active={{
+                      bg: "gray.400"
+                    }}
                   />
+                </Tooltip>
                 <Heading size="lg">Novo usuário</Heading>
               </Flex>
             </Skeleton> 
@@ -247,7 +252,7 @@ export default function CreateUserPage() {
             </Flex>
 
             <Button 
-              onClick={() => Controller.addNewUser(addNewUserErrorHandler, showSuccessToast)} 
+              onClick={() => Controller.addNewUser(addNewUserErrorHandler, addNewUserSuccessHandler)} 
               mt="24px" 
               bg="green.400" 
               color="white" 

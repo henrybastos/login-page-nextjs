@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
-import Head from 'next/head'
+import Head from 'next/head';
 import { ChakraProvider, Heading, Card, Input, Flex, Box, Button, IconButton, Skeleton, Tooltip, Text, InputGroup, InputRightElement, useToast } from "@chakra-ui/react";
 import { FiEyeOff, FiEye } from "react-icons/fi";
 import _InputPassword from "../../app/components/_InputPassword";
 import _InputText from "../../app/components/_InputText";
-import { ConfigProps, LoginUserModel } from "@/app/LoginUserModel";
 import { useRouter } from "next/router";
+import { ConfigProps, LoginUserModel } from "@/app/LoginUserModel";
+import { LoginUserController } from "@/app/LoginUserController";
 
 export default function LoginPage () {
     const router = useRouter();
     const blankSpaces = useToast();
+    const errorToast = useToast();
 
     let [user, setUser] = useState('');
     let [password, setPassword] = useState('');
@@ -33,6 +35,7 @@ export default function LoginPage () {
     };
 
     const LoginModel = new LoginUserModel(ConfigProps);
+    const LoginController = new LoginUserController(ConfigProps);
 
     function checkBlankInputs () {
         let blanks: Array<string> = [];
@@ -53,12 +56,56 @@ export default function LoginPage () {
                 status: "error",
                 id: "blank-spaces",
             });
+            return true;
         } else {
             blankSpaces.close("blank-spaces");
+            return false;
+        }
+    }
+
+    async function LogUserIn () {
+        interface UserResponse {
+            name: string; 
+            username: string; 
+            email: string; 
+        }
+
+        let blankSpacesCheck = checkBlankInputs();
+
+        if (!blankSpacesCheck) {
+            let response: UserResponse | any = await LoginController.loginUser();
+
+            console.log(response);
+            if (response !== "User not found") {
+                let queryUser = {
+                    name: response?.name,
+                    username: response.username,
+                    email: response.email,
+                }
+                router.push({
+                    pathname: '/user-dashboard',
+                    query: {data: JSON.stringify(queryUser)},
+                })
+            } else {
+                if (!errorToast.isActive("user-not-found")) {
+                    errorToast({
+                        title: "Usuário ou Senha incorretos.",
+                        id: "user-not-found",
+                        status: "error",
+                        duration: 10000,
+                    });
+                }
+                setUserCheck(false);
+                setPasswordCheck(false);
+            }
         }
     }
 
     useEffect(() => {
+        if (password !== '') {
+            setPasswordCheck(true);
+        }
+
         try {
             LoginModel.checkWhiteSpace(password, "password");
             setPasswordCheck(true);
@@ -68,9 +115,11 @@ export default function LoginPage () {
             setPasswordErrorMessage(err.message);
             console.error(err.message);
         }
-    },[password])
 
-    useEffect(() => {
+        if (user !== '') {
+            setUserCheck(true);
+        }
+
         try {
             LoginModel.checkWhiteSpace(user, "user");
             setUserCheck(true);
@@ -80,12 +129,12 @@ export default function LoginPage () {
             setUserErrorMessage(err.message);
             console.error(err.message);
         }
-    },[user])
+    },[password, user])
         
     return (
         <ChakraProvider>
             <Head>
-            <title>Login page • Login</title>
+                <title>Login</title>
             </Head>
 
             <Flex bg="gray.100" w="100%" h="100vh" flexDirection="column" alignItems="center">
@@ -102,7 +151,7 @@ export default function LoginPage () {
                         <Flex flexDirection="column" alignItems="center" w="100%">
 
                             <Box w={{sm: "100%", md: "65%"}}>
-                                <Heading mb="4px" size="md">Nome de usuário ou email</Heading>
+                                <Heading mb="12px" size="md">Nome de usuário ou email</Heading>
                                     <Input 
                                         bg="white" 
                                         type="text"
@@ -115,7 +164,7 @@ export default function LoginPage () {
                             </Box>
 
                             <Box w={{sm: "100%", md: "65%"}} mt="12px">
-                                <Heading mb="4px" size="md">Senha</Heading>
+                                <Heading mb="12px" size="md">Senha</Heading>
                                 <InputGroup>
                                     <Input 
                                         bg="white" 
@@ -141,8 +190,8 @@ export default function LoginPage () {
 
                             <Flex flexDirection="row" w={{sm: "100%", md: "65%"}} justifyContent="space-between">
                                 <Button
-                                    w="calc(50% - 4px)"
-                                    onClick={() => checkBlankInputs()} 
+                                    w="calc(50% - 8px)"
+                                    onClick={() => LogUserIn()} 
                                     mt="24px" 
                                     bg="green.400"
                                     isDisabled={!userCheck || !passwordCheck}
@@ -154,7 +203,7 @@ export default function LoginPage () {
                                 </Button>
 
                                 <Button
-                                    w="calc(50% - 4px)"
+                                    w="calc(50% - 8px)"
                                     onClick={() => router.push('/create-user')} 
                                     mt="24px" 
                                     bg="green.400" 
